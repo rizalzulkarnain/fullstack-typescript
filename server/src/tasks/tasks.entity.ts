@@ -4,7 +4,7 @@ import {
   Column,
 } from 'typeorm';
 
-import { Priority } from '../enums/priority';
+import { Priority } from '../enums/Priority';
 import { Status } from '../enums/Status';
 
 @Entity()
