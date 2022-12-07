@@ -9,15 +9,20 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { customTheme } from './theme/customTheme';
 import Dashboard from './pages/dashboard/Dashboard';
 
+import ComposeContext from './context/compose.context';
+import { rootContext } from './context/root.context';
+
 const queryClient = new QueryClient();
 
 const App: FC = (): ReactElement => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={customTheme}>
-        <CssBaseline />
-        <Dashboard />
-      </ThemeProvider>
+      <ComposeContext components={rootContext}>
+        <ThemeProvider theme={customTheme}>
+          <CssBaseline />
+          <Dashboard />
+        </ThemeProvider>
+      </ComposeContext>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

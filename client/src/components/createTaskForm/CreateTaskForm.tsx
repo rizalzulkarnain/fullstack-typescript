@@ -1,11 +1,31 @@
-import React, { FC, ReactElement, useState } from 'react';
-import { Box, Typography, Stack } from '@mui/material';
+import React, {
+  FC,
+  ReactElement,
+  useState,
+  useEffect,
+  useContext,
+} from 'react';
+import {
+  Box,
+  Typography,
+  Stack,
+  LinearProgress,
+  Button,
+  Alert,
+  AlertTitle,
+} from '@mui/material';
+import { useMutation } from '@tanstack/react-query';
+import { ICreateTask } from '../taskArea/interfaces/ICreateTask';
+
+import { sendAPIRequest } from '../../helpers/SendAPIRequest';
+
 import TaskTitleField from './_taskTitleField';
 import TaskDescriptionField from './_taskDescriptionField';
 import TaskDateField from './_taskDateField';
 import TaskSelectField from './_taskSelectField';
 import { Priority } from './enums/Priority';
 import { Status } from './enums/Status';
+import { TaskStatusChangeContext } from '../../context';
 
 const CreateTaskForm: FC = (): ReactElement => {
   const [title, setTitle] = useState<string | undefined>(
@@ -21,6 +41,52 @@ const CreateTaskForm: FC = (): ReactElement => {
   const [priority, setPriority] = useState<string>(
     Priority.normal,
   );
+  const [showSuccess, setShowSuccess] =
+    useState<boolean>(false);
+
+  const taskUpdatedContext = useContext(
+    TaskStatusChangeContext,
+  );
+
+  const createTaskMutation = useMutation(
+    (data: ICreateTask) =>
+      sendAPIRequest(
+        'http://localhost:5000/tasks',
+        'POST',
+        data,
+      ),
+  );
+
+  function createTaskHandler() {
+    if (!title || !date || !description) {
+      return;
+    }
+
+    const task: ICreateTask = {
+      title,
+      description,
+      date: date.toString(),
+      status,
+      priority,
+    };
+
+    createTaskMutation.mutate(task);
+  }
+
+  useEffect(() => {
+    if (createTaskMutation.isSuccess) {
+      setShowSuccess(true);
+      taskUpdatedContext.toggle();
+    }
+
+    const successTimeOut = setTimeout(() => {
+      setShowSuccess(false);
+    }, 7000);
+
+    return () => {
+      clearTimeout(successTimeOut);
+    };
+  }, [createTaskMutation.isSuccess]);
 
   return (
     <Box
@@ -31,13 +97,36 @@ const CreateTaskForm: FC = (): ReactElement => {
       px={4}
       my={6}
     >
+      {showSuccess && (
+        <Alert
+          severity="success"
+          sx={{
+            width: '100%',
+            marginBottom: '16px',
+          }}
+        >
+          <AlertTitle>Success</AlertTitle>
+          The Task has been created successfully
+        </Alert>
+      )}
+
       <Typography mb={2} component="h2" variant="h6">
         Create a Task
       </Typography>
       <Stack sx={{ width: '100%' }} spacing={2}>
-        <TaskTitleField />
-        <TaskDescriptionField />
-        <TaskDateField />
+        <TaskTitleField
+          onChange={(e) => setTitle(e.target.value)}
+          disabled={createTaskMutation.isLoading}
+        />
+        <TaskDescriptionField
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={createTaskMutation.isLoading}
+        />
+        <TaskDateField
+          value={date}
+          onChange={(date) => setDate(date)}
+          disabled={createTaskMutation.isLoading}
+        />
 
         <Stack
           sx={{ width: '100%' }}
@@ -47,6 +136,11 @@ const CreateTaskForm: FC = (): ReactElement => {
           <TaskSelectField
             label="Status"
             name="Status"
+            value={status}
+            onChange={(e) =>
+              setStatus(e.target.value as string)
+            }
+            disabled={createTaskMutation.isLoading}
             items={[
               {
                 value: Status.todo,
@@ -61,6 +155,11 @@ const CreateTaskForm: FC = (): ReactElement => {
           <TaskSelectField
             label="Priority"
             name="Priority"
+            value={priority}
+            onChange={(e) =>
+              setPriority(e.target.value as string)
+            }
+            disabled={createTaskMutation.isLoading}
             items={[
               {
                 value: Priority.low,
@@ -77,6 +176,23 @@ const CreateTaskForm: FC = (): ReactElement => {
             ]}
           />
         </Stack>
+        {createTaskMutation.isLoading && <LinearProgress />}
+
+        <Button
+          disabled={
+            !title ||
+            !description ||
+            !date ||
+            !status ||
+            !priority
+          }
+          onClick={createTaskHandler}
+          variant="contained"
+          size="large"
+          fullWidth
+        >
+          Create A Task
+        </Button>
       </Stack>
     </Box>
   );
